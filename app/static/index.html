@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UNIQ Inbox Review</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header>
+    <div><p class="eyebrow">UNIQ SUPPLY</p><h1>Inbox review</h1></div>
+    <div class="actions">
+      <button id="check-ai" type="button">Check AI connection</button>
+      <button id="process" class="primary" type="button">Process pending emails</button>
+      <button id="export" type="button">Export CSV</button>
+    </div>
+  </header>
+  <p id="status" role="status">Loading inbox…</p>
+  <p id="message" role="alert"></p>
+  <div class="toolbar">
+    <label>Import inbox CSV<input id="upload" type="file" accept=".csv,text/csv"></label>
+    <label>Saved runs<select id="runs"><option value="">Loading runs…</option></select></label>
+    <label>Category<select id="category"><option value="">All categories</option></select></label>
+    <label>Review filter<select id="filter"><option value="">All emails</option><option value="human">Owner review</option><option value="unreviewed">Not reviewed</option><option value="error">Errors / failed retries</option><option value="pending">Pending</option></select></label>
+  </div>
+  <p class="notice">Drafts only. Prices and policies come from the rule engine. Save edits before exporting; saved work resumes after restart.</p>
+  <main>
+    <nav aria-label="Emails"><h2>Priority queue <span id="count"></span></h2><div id="emails"></div></nav>
+    <section id="detail" aria-labelledby="subject">
+      <h2 id="subject">Select an email</h2>
+      <p id="sender"></p>
+      <div id="badges" class="badges"></div>
+      <p id="entry-error" class="error"></p>
+      <div class="actions"><button id="retry" type="button">Process this email</button><span id="save-state"></span></div>
+      <h2>Draft reply</h2>
+      <label class="sr-only" for="draft">Draft reply</label>
+      <textarea id="draft" rows="12" disabled placeholder="Process this email to generate a draft."></textarea>
+      <div class="actions review-actions">
+        <label><input id="reviewed" type="checkbox" disabled> I reviewed this result</label>
+        <button id="save" class="primary" type="button" disabled>Save review</button>
+      </div>
+      <h2>Quote and owner decision</h2><pre id="quote"></pre><p id="human"></p>
+      <details open><summary>Original email</summary><pre id="body"></pre></details>
+      <details><summary>Order evidence</summary><p id="match"></p><div id="orders"></div></details>
+      <details><summary>Rule evidence, assumptions, and missing information</summary><pre id="evidence"></pre></details>
+    </section>
+  </main>
+</body>
+</html>
