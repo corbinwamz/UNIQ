@@ -29,9 +29,9 @@ def ai_settings() -> dict[str, str]:
             if not line or line.startswith("#"):
                 continue
             name, separator, value = line.partition("=")
-            if separator and name.strip() in ("OPENAI_API_KEY", "OPENAI_MODEL"):
+            if separator and name.strip() in ("GEMINI_API_KEY", "GEMINI_MODEL"):
                 value = value.strip()
                 if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
                     value = value[1:-1]
                 values[name.strip()] = value
-    return {name: os.environ.get(name, values.get(name, "")).strip() for name in ("OPENAI_API_KEY", "OPENAI_MODEL")}
+    return {name: os.environ.get(name, values.get(name, "")).strip() for name in ("GEMINI_API_KEY", "GEMINI_MODEL")}

@@ -1,2 +1,2 @@
 # Python 3.11+. All application modules use the standard library.
-# OpenAI Responses is called via HTTPS REST; no package installation needed.
+# Gemini is called via HTTPS REST; no package installation needed.

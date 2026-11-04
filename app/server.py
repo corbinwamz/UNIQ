@@ -8,7 +8,7 @@ import json
 from threading import Lock, Thread
 from urllib.parse import urlsplit
 
-from .ai_client import AIError, OpenAIClient
+from .ai_client import AIError, GeminiClient
 from .config import INBOX_PATH, MAX_IMPORT_BYTES, ORDERS_PATH, RUNS_DIR, SCENARIO_DATE, STATIC_DIR, ai_settings
 from .data_loader import DataValidationError, build_inbox, parse_inbox, parse_orders, read_source
 from .models import Email, InboxRecord, Order, OrderCandidate, OrderContext
@@ -36,7 +36,7 @@ class InboxServer(ThreadingHTTPServer):
         super().__init__(address, InboxHandler)
         self.orders, self.store = orders, store
         self.lock = Lock()
-        self.client_factory = client_factory or OpenAIClient
+        self.client_factory = client_factory or GeminiClient
         self.job = {"busy": False, "current": None, "completed": 0, "total": 0, "message": "Ready."}
         self.run = store.latest() or new_run(records)
         store.save(self.run)
@@ -118,7 +118,7 @@ class InboxHandler(BaseHTTPRequestHandler):
             data = deepcopy(self.server.run)
             data.update(scenario_date=SCENARIO_DATE.isoformat(), stage="AI drafting and human review", job=deepcopy(self.server.job))
         settings = ai_settings()
-        data["ai_configured"] = bool(settings["OPENAI_API_KEY"] and settings["OPENAI_MODEL"])
+        data["ai_configured"] = bool(settings["GEMINI_API_KEY"] and settings["GEMINI_MODEL"])
         return data
 
     def do_GET(self):

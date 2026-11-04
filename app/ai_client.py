@@ -1,8 +1,9 @@
-"""OpenAI Responses REST client; strict schemas, finite timeouts, sanitized errors."""
+"""Gemini REST client; structured JSON, finite timeouts, sanitized errors."""
 
 import json
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+from urllib.parse import quote
 
 from .config import ai_settings
 from .models import CATEGORIES, DESTINATIONS, PRODUCTION_PATHS
@@ -79,47 +80,52 @@ def validate_schema(value, schema, location="response"):
             validate_schema(item, schema["items"], f"{location}[]")
 
 
-class OpenAIClient:
+class GeminiClient:
     def __init__(self, settings=None, transport=None):
         self.settings = settings if settings is not None else ai_settings()
         self.transport = transport or urlopen
 
     def require_configuration(self):
-        if not self.settings.get("OPENAI_API_KEY") or not self.settings.get("OPENAI_MODEL"):
-            raise AIError("Set OPENAI_API_KEY and OPENAI_MODEL in the local .env file or shell environment. Never paste the key into chat.")
+        if not self.settings.get("GEMINI_API_KEY") or not self.settings.get("GEMINI_MODEL"):
+            raise AIError("Set GEMINI_API_KEY and GEMINI_MODEL in the local .env file or shell environment. Never paste the key into chat.")
 
     def complete(self, name, instructions, context, schema):
         self.require_configuration()
         payload = {
-            "model": self.settings["OPENAI_MODEL"], "store": False,
-            "instructions": instructions,
-            "input": json.dumps(context, ensure_ascii=False),
-            "text": {"format": {"type": "json_schema", "name": name, "strict": True, "schema": schema}},
-            "max_output_tokens": 6000,
+            "systemInstruction": {"parts": [{"text": instructions}]},
+            "contents": [{"role": "user", "parts": [{"text": json.dumps(context, ensure_ascii=False)}]}],
+            "generationConfig": {"responseMimeType": "application/json", "responseJsonSchema": schema, "maxOutputTokens": 8192},
         }
-        request = Request("https://api.openai.com/v1/responses", data=json.dumps(payload).encode("utf-8"), headers={
-            "Authorization": "Bearer " + self.settings["OPENAI_API_KEY"],
+        model = self.settings["GEMINI_MODEL"].removeprefix("models/")
+        endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" + quote(model, safe="") + ":generateContent"
+        request = Request(endpoint, data=json.dumps(payload).encode("utf-8"), headers={
+            "x-goog-api-key": self.settings["GEMINI_API_KEY"],
             "Content-Type": "application/json",
         })
         try:
             with self.transport(request, timeout=90) as response:
                 result = json.load(response)
         except HTTPError as exc:
-            messages = {401: "API authentication failed; check your local key.", 403: "API access denied; check account/model access.", 429: "API rate or quota limit reached; check usage before retrying.", 400: "API rejected the request; check model support for Responses structured outputs."}
+            messages = {401: "Gemini authentication failed; check your local key.", 403: "Gemini access denied; check account/model access.", 404: "Configured Gemini model was not found or does not support generateContent. Check GEMINI_MODEL.", 429: "Gemini rate or quota limit reached; check usage before retrying.", 400: "Gemini rejected the request; check the key, model, and structured-output support."}
             raise AIError(messages.get(exc.code, f"API request failed (HTTP {exc.code}); retry later.")) from None
         except (URLError, TimeoutError, OSError):
             raise AIError("API connection failed or timed out. Check connectivity and retry.") from None
         except (ValueError, UnicodeError):
             raise AIError("API returned an unreadable response.") from None
-        if not isinstance(result, dict) or result.get("status") != "completed":
-            raise AIError("API response was incomplete or failed; no draft was accepted.")
+        if not isinstance(result, dict):
+            raise AIError("Gemini returned an unreadable response.")
+        if result.get("promptFeedback", {}).get("blockReason"):
+            raise AIError("Gemini blocked this request; review the email manually.")
+        candidates = result.get("candidates")
+        if not isinstance(candidates, list) or not candidates or not isinstance(candidates[0], dict):
+            raise AIError("Gemini returned no completed candidate; no draft was accepted.")
+        candidate = candidates[0]
+        if candidate.get("finishReason") != "STOP":
+            raise AIError("Gemini response was blocked, incomplete, or truncated; no draft was accepted.")
         chunks = []
-        for item in result.get("output", []):
-            for content in item.get("content", []):
-                if content.get("type") == "refusal":
-                    raise AIError("Model declined this request; review the email manually.")
-                if content.get("type") == "output_text":
-                    chunks.append(content.get("text", ""))
+        for part in candidate.get("content", {}).get("parts", []):
+            if isinstance(part, dict) and isinstance(part.get("text"), str) and not part.get("thought"):
+                chunks.append(part["text"])
         try:
             parsed = json.loads("".join(chunks))
         except (ValueError, TypeError):
@@ -131,4 +137,4 @@ class OpenAIClient:
         result = self.complete("connection_check", "Return {\"ok\":true} to confirm structured output support.", {}, SMOKE_SCHEMA)
         if result["ok"] is not True:
             raise AIError("API configuration check did not succeed.")
-        return {"ok": True, "message": "API connection and structured output verified."}
+        return {"ok": True, "message": "Gemini connection and structured output verified."}

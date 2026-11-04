@@ -124,7 +124,7 @@ function render(snapshot, preserveEditor = false) {
   }
   const complete = data.records.filter((record) => record.result).length;
   const reviewed = data.records.filter((record) => record.reviewed).length;
-  const config = data.ai_configured ? "AI configured" : "Set OPENAI_API_KEY and OPENAI_MODEL in .env";
+  const config = data.ai_configured ? "Gemini configured" : "Set GEMINI_API_KEY and GEMINI_MODEL in .env";
   $("#status").textContent = `${complete}/${data.records.length} processed · ${reviewed} reviewed · ${config} · Scenario ${data.scenario_date}${data.job.busy ? ` · Processing ${data.job.current || "…"} (${data.job.completed}/${data.job.total})` : ""}`;
   renderQueue();
   if (!preserveEditor || !dirty) renderDetail();

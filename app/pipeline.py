@@ -225,7 +225,7 @@ def validate_draft(reply: str, decisions: dict, knowledge: str) -> None:
     if not reply.rstrip().endswith("The UNIQ Supply Team"):
         raise AIError("Draft is missing the required team sign-off.")
     lower = reply.casefold()
-    if any(fragment in lower for fragment in ("ignore your previous", "system instructions", "system prompt", "note to the ai", "| size |", "openai_api_key")):
+    if any(fragment in lower for fragment in ("ignore your previous", "system instructions", "system prompt", "note to the ai", "| size |", "openai_api_key", "gemini_api_key")):
         raise AIError("Draft contains internal or suspicious instruction content; no draft accepted.")
     if re.search(r"\b(?:i|we)(?:'ve| have)? (?:processed|issued|shipped|refunded)\b|guarantee(?:d)? (?:delivery|arrival)|rush is confirmed|40% discount", lower):
         raise AIError("Draft claims an unauthorized action, guarantee, or discount.")

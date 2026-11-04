@@ -108,12 +108,12 @@ class ReviewWorkflowTests(unittest.TestCase):
             self.assertEqual(error.exception.code, 400)
 
     def test_missing_configuration_has_clear_setup_error(self):
-        from app.ai_client import OpenAIClient
-        with review_server(OpenAIClient({})) as (base, server):
+        from app.ai_client import GeminiClient
+        with review_server(GeminiClient({})) as (base, server):
             with self.assertRaises(HTTPError) as error:
                 api(base, "/api/process", {})
             self.assertEqual(error.exception.code, 503)
-            self.assertIn("OPENAI_API_KEY", json.load(error.exception)["error"])
+            self.assertIn("GEMINI_API_KEY", json.load(error.exception)["error"])
             self.assertFalse(api(base, "/api/inbox")["job"]["busy"])
 
 
